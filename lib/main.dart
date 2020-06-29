@@ -2,9 +2,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(
+    /// Providers are above [MyApp] instead of inside it, so that tests
+    /// can use [MyApp] while mocking the providers
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => QuestionsViewModel()),
+      ],
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -37,15 +47,25 @@ class _home1State extends State<home1> {
       title: 'App',
       home: new Scaffold(
         appBar: new AppBar(title: new Text('App')),
-        body: Column(
-          children: <Widget>[
-            Expanded(flex: 6, child: MyHomePage()),
-            Expanded(child: MyHomePage3()),
-          ],
-        ),
+        body: MyHomePage(),
       ),
     );
   }
+  // @override
+  // Widget build(BuildContext context) {
+  //   return new MaterialApp(
+  //     title: 'App',
+  //     home: new Scaffold(
+  //       appBar: new AppBar(title: new Text('App')),
+  //       body: Column(
+  //         children: <Widget>[
+  //           Expanded(flex: 6, child: MyHomePage()),
+  //           // Expanded(child: MyHomePage3()),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 }
 
 class MyHomePage extends StatefulWidget {
@@ -60,7 +80,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return new Stepper(
+    var questions = context.watch<QuestionsViewModel>().questions;
+    // List<Question> questions = prov.questions;
+    if (questions.length == 0) return Text("");
+
+    return Stepper(
+      physics: ClampingScrollPhysics(),
       type: StepperType.vertical,
       currentStep: _currentStep,
       onStepTapped: (int step) => setState(() => _currentStep = step),
@@ -77,37 +102,24 @@ class _MyHomePageState extends State<MyHomePage> {
       onStepCancel:
           _currentStep > 0 ? () => setState(() => _currentStep -= 1) : null,
       steps: <Step>[
-        new Step(
-          title: LimitedBox(
-            maxWidth: MediaQuery.of(context).size.width - 100,
-            child: new Text(
-              'xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-              // 'I hat their motives are malevolant.',
-              textWidthBasis: TextWidthBasis.longestLine,
+        for (var question in questions)
+          Step(
+            title: LimitedBox(
+              maxWidth: MediaQuery.of(context).size.width - 100,
+              child: new Text(
+                question.index.toString() + question.questionTxt,
+              ),
             ),
+            content: Slider(
+              value: 1,
+              onChanged: (v) => {},
+              divisions: 10,
+              min: 1,
+              max: 10,
+            ),
+            isActive: _currentStep >= 0,
+            state: _currentStep >= 0 ? StepState.complete : StepState.disabled,
           ),
-          content: Slider(
-            value: 1,
-            onChanged: (v) => {},
-            divisions: 10,
-            min: 1,
-            max: 10,
-          ),
-          isActive: _currentStep >= 0,
-          state: _currentStep >= 0 ? StepState.complete : StepState.disabled,
-        ),
-        new Step(
-          title: new Text('Payment'),
-          content: new Text('This is the second step.'),
-          isActive: _currentStep >= 0,
-          state: _currentStep >= 1 ? StepState.complete : StepState.disabled,
-        ),
-        new Step(
-          title: new Text('Order'),
-          content: new Text('This is the third step.'),
-          isActive: _currentStep >= 0,
-          state: _currentStep >= 2 ? StepState.complete : StepState.disabled,
-        ),
       ],
     );
   }
@@ -312,28 +324,101 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
   }
 }
 
-/// Mix-in [DiagnosticableTreeMixin] to have access to [debugFillProperties] for the devtool
-class Counter with ChangeNotifier, DiagnosticableTreeMixin {
-  int _count = 0;
-  int get count => _count;
+// /// Mix-in [DiagnosticableTreeMixin] to have access to [debugFillProperties] for the devtool
+// class Counter with ChangeNotifier, DiagnosticableTreeMixin {
+//   int _count = 0;
+//   int get count => _count;
 
-  void increment() {
-    _count++;
-    notifyListeners();
+//   void increment() {
+//     _count++;
+//     notifyListeners();
+//   }
+
+//   /// Makes `Counter` readable inside the devtools by listing all of its properties
+//   @override
+//   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+//     super.debugFillProperties(properties);
+//     properties.add(IntProperty('count', count));
+//   }
+// }
+
+Future<List<String>> getdbLines() async {
+  return (await loadAssetdb()).split("\n").skip(1).toList();
+}
+
+Future<String> loadAssetdb() async {
+  return await rootBundle.loadString('assets/db.txt');
+}
+
+class QuestionsViewModel with ChangeNotifier {
+  final questions = <Question>[];
+  QuestionsViewModel() {
+    refresh();
+    // getdbLines().then(
+    //   (dbLines) {
+    //     for (var index = 0; index < dbLines.length; index++) {
+    //       var dbLine = dbLines[index];
+    //       var elemets = dbLine.split("|");
+    //       var category = elemets[0];
+    //       var group = elemets[1];
+    //       var effect = elemets[2];
+    //       var questionText = elemets[3];
+    //       questions.add(Question(index, category, group, effect, questionText));
+    //     }
+    //     notifyListeners();
+
+    //     // dbLines.asMap().forEach(
+    //     //   (index, dbLine) {
+    //     //     var elemets = dbLine.split("|");
+    //     //     var category = elemets[0];
+    //     //     var group = elemets[1];
+    //     //     var effect = elemets[2];
+    //     //     var questionText = elemets[3];
+    //     //     var answer = "";
+    //     //     questions
+    //     //         .add(Question(index, category, group, effect, questionText));
+    //     //     // _addcontacts(Question(index, category, group, effect, questionText));
+    //     //   },
+    //     // );
+    //   },
+    // );
   }
 
-  /// Makes `Counter` readable inside the devtools by listing all of its properties
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(IntProperty('count', count));
+  refresh() async {
+    var dbLines = await getdbLines();
+    for (var index = 0; index < dbLines.length; index++) {
+      var dbLine = dbLines[index];
+      var elemets = dbLine.split("|");
+      var category = elemets[0];
+      var group = elemets[1];
+      var effect = elemets[2];
+      var questionText = elemets[3];
+      questions.add(Question(index, category, group, effect, questionText));
+      notifyListeners();
+    }
+  }
+
+  void addcontacts(Question question) {
+    questions.add(question);
+    print(question);
+    notifyListeners();
   }
 }
 
+class Question with ChangeNotifier {
+  final int index;
+  final String category;
+  final String group;
+  final String effect;
+  final String questionTxt;
+  bool isAnswered;
+  int answer;
+  Question(
+      this.index, this.category, this.group, this.effect, this.questionTxt);
 
-
-
-
-Future<String> loadAsset() async {
-  return await rootBundle.loadString('assets/db.txt');
+  void setAnswer(int answer) {
+    this.isAnswered = true;
+    this.answer = answer;
+    notifyListeners();
+  }
 }
