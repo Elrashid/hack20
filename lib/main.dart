@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(MyApp());
@@ -84,7 +86,13 @@ class _MyHomePageState extends State<MyHomePage> {
               textWidthBasis: TextWidthBasis.longestLine,
             ),
           ),
-          content: Slider(value: 1, onChanged: (v) => {},divisions: 10,min: 1,max: 10,),
+          content: Slider(
+            value: 1,
+            onChanged: (v) => {},
+            divisions: 10,
+            min: 1,
+            max: 10,
+          ),
           isActive: _currentStep >= 0,
           state: _currentStep >= 0 ? StepState.complete : StepState.disabled,
         ),
@@ -302,4 +310,30 @@ class _MyStatefulWidgetState extends State<MyStatefulWidget> {
       ),
     );
   }
+}
+
+/// Mix-in [DiagnosticableTreeMixin] to have access to [debugFillProperties] for the devtool
+class Counter with ChangeNotifier, DiagnosticableTreeMixin {
+  int _count = 0;
+  int get count => _count;
+
+  void increment() {
+    _count++;
+    notifyListeners();
+  }
+
+  /// Makes `Counter` readable inside the devtools by listing all of its properties
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(IntProperty('count', count));
+  }
+}
+
+
+
+
+
+Future<String> loadAsset() async {
+  return await rootBundle.loadString('assets/db.txt');
 }
