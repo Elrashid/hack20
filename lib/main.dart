@@ -1,8 +1,14 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:sticky_headers/sticky_headers.dart';
+import "package:collection/collection.dart";
 
 void main() {
   runApp(
@@ -81,46 +87,245 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     var questions = context.watch<QuestionsViewModel>().questions;
-    // List<Question> questions = prov.questions;
-    if (questions.length == 0) return Text("");
+    Map<String, List<Question>> groups = groupBy(questions, (g) => g.category);
 
-    return Stepper(
-      physics: ClampingScrollPhysics(),
-      type: StepperType.vertical,
-      currentStep: _currentStep,
-      onStepTapped: (int step) => setState(() => _currentStep = step),
-      controlsBuilder: (BuildContext context,
-          {VoidCallback onStepContinue, VoidCallback onStepCancel}) {
-        return Row(
-          children: <Widget>[
-            FlatButton(child: Text("Next"), onPressed: onStepContinue),
-          ],
-        );
-      },
-      onStepContinue:
-          _currentStep < 2 ? () => setState(() => _currentStep += 1) : null,
-      onStepCancel:
-          _currentStep > 0 ? () => setState(() => _currentStep -= 1) : null,
-      steps: <Step>[
-        for (var question in questions)
-          Step(
-            title: LimitedBox(
-              maxWidth: MediaQuery.of(context).size.width - 100,
-              child: new Text(
-                question.index.toString() + question.questionTxt,
+    return ListView.builder(
+        itemCount: groups.length,
+        itemBuilder: (context, index) {
+          return StickyHeader(
+            header: Container(
+              height: 50.0,
+              color: Colors.blueGrey[700],
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                (groups.keys.toList()[index]).toUpperCase(),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
-            content: Slider(
-              value: 1,
-              onChanged: (v) => {},
-              divisions: 10,
-              min: 1,
-              max: 10,
+            content: Container(
+              child: Column(
+                children: <Widget>[
+                  for (var question in groups[(groups.keys.toList()[index])])
+                    QuestionWidget(question: question),
+                ],
+              ),
             ),
-            isActive: _currentStep >= 0,
-            state: _currentStep >= 0 ? StepState.complete : StepState.disabled,
+          );
+        });
+  }
+}
+
+class QuestionWidget extends StatefulWidget {
+  const QuestionWidget({
+    Key key,
+    @required this.question,
+  }) : super(key: key);
+
+  final Question question;
+
+  @override
+  _QuestionWidgetState createState() => _QuestionWidgetState();
+}
+
+class _QuestionWidgetState extends State<QuestionWidget> {
+  int _answer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(
+              widget.question.questionTxt.trim(),
+              style: const TextStyle(fontSize: 22),
+            ),
           ),
-      ],
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('01 - '),
+                const Text(
+                  'Strongly disagree',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ],
+            ),
+            value: 1,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('02 - '),
+                const Text(
+                  'Strongly disagree',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ],
+            ),
+            value: 2,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('03 - '),
+                const Text(
+                  'Strongly disagree',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ],
+            ),
+            value: 3,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('04 - '),
+                const Text(
+                  'Disagree',
+                  style: const TextStyle(color: Colors.deepOrange),
+                ),
+              ],
+            ),
+            value: 4,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('05 - '),
+                const Text(
+                  'Disagree',
+                  style: const TextStyle(color: Colors.deepOrange),
+                ),
+              ],
+            ),
+            value: 5,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('06 - '),
+                const Text(
+                  'Maybe',
+                  style: const TextStyle(color: Colors.black),
+                ),
+              ],
+            ),
+            value: 6,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('07 - '),
+                const Text(
+                  'Agree',
+                  style: const TextStyle(color: Colors.blue),
+                ),
+              ],
+            ),
+            value: 7,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('08 - '),
+                const Text(
+                  'Strongly agree',
+                  style: const TextStyle(color: Colors.green),
+                ),
+              ],
+            ),
+            value: 8,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('09 - '),
+                const Text(
+                  'Strongly agree',
+                  style: const TextStyle(color: Colors.green),
+                ),
+              ],
+            ),
+            value: 9,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+          RadioListTile<int>(
+            title: Row(
+              children: <Widget>[
+                const Text('10 - '),
+                const Text(
+                  'Strongly agree',
+                  style: const TextStyle(color: Colors.green),
+                ),
+              ],
+            ),
+            value: 10,
+            groupValue: widget.question.answer,
+            onChanged: (int value) {
+              setState(() {
+                widget.question.setAnswer(value);
+              });
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -392,8 +597,14 @@ class QuestionsViewModel with ChangeNotifier {
       var category = elemets[0];
       var group = elemets[1];
       var effect = elemets[2];
-      var questionText = elemets[3];
-      questions.add(Question(index, category, group, effect, questionText));
+      var questionTxt = elemets[3];
+      questions.add(Question(
+        index: index,
+        category: category,
+        group: group,
+        effect: effect,
+        questionTxt: questionTxt,
+      ));
       notifyListeners();
     }
   }
@@ -405,20 +616,75 @@ class QuestionsViewModel with ChangeNotifier {
   }
 }
 
+// class Question1 with ChangeNotifier {
+//   final int index;
+//   final String category;
+//   final String group;
+//   final String effect;
+//   final String questionTxt;
+//   bool isAnswered;
+//   int answer;
+//   Question(
+//       this.index, this.category, this.group, this.effect, this.questionTxt);
+
+//   void setAnswer(int answer) {
+//     this.isAnswered = true;
+//     this.answer = answer;
+//     notifyListeners();
+//   }
+// }
+
 class Question with ChangeNotifier {
-  final int index;
-  final String category;
-  final String group;
-  final String effect;
-  final String questionTxt;
+  int index;
+  String category;
+  String group;
+  String effect;
+  String questionTxt;
   bool isAnswered;
   int answer;
-  Question(
-      this.index, this.category, this.group, this.effect, this.questionTxt);
 
-  void setAnswer(int answer) {
+  Question(
+      {this.index,
+      this.category,
+      this.group,
+      this.effect,
+      this.questionTxt,
+      this.isAnswered,
+      this.answer});
+
+  Question.fromJson(Map<String, dynamic> json) {
+    index = json['index'];
+    category = json['category'];
+    group = json['group'];
+    effect = json['effect'];
+    questionTxt = json['questionTxt'];
+    isAnswered = json['isAnswered'];
+    answer = json['answer'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = new Map<String, dynamic>();
+    data['index'] = this.index;
+    data['category'] = this.category;
+    data['group'] = this.group;
+    data['effect'] = this.effect;
+    data['questionTxt'] = this.questionTxt;
+    data['isAnswered'] = this.isAnswered;
+    data['answer'] = this.answer;
+    return data;
+  }
+
+  Future<void> setAnswer(int answer) async {
     this.isAnswered = true;
     this.answer = answer;
+    final directory = await getApplicationDocumentsDirectory();
+    final path = directory.path;
+    final file = File('$path/${this.index}.txt');
+    file.writeAsString(jsonEncode(this));
     notifyListeners();
   }
 }
+
+
+
+
